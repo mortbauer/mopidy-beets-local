@@ -123,7 +123,7 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
                                    None,
                                    'artist',
                                    dict(genre=query['genre'][0],
-                                        artist=row[1])),
+                                        artist=row[0])),
                     name=row[0] if bool(row[0]) else u'No Artist'))
         elif level == "artist":
             for album in self._browse_album(query):
@@ -201,11 +201,11 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
 
     def _browse_album(self, query):
         logger.debug(u'browse_album query: %s' % query)
-        return self.lib.albums('mb_albumartistid:\'%s\' genre:\'%s\''
+        return self.lib.albums('albumartist:\'%s\' genre:\'%s\''
                                % (query['artist'][0], query['genre'][0]))
 
     def _browse_artist(self, query=None):
-        statement = 'select Distinct albumartist, mb_albumartistid from albums'
+        statement = 'select Distinct albumartist from albums'
         if query:
             statement += ' where 1=1 '
             statement += self._build_statement(query, 'genre', 'genre')
