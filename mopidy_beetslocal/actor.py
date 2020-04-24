@@ -23,14 +23,14 @@ class BeetsLocalBackend(pykka.ThreadingActor, backend.Backend):
         self.uri_schemes = ['beetslocal']
 
     def _extract_uri(self, uri):
-        logger.debug("convert uri = %s" % uri.encode('ascii', 'ignore'))
+        logger.debug("convert uri = %s",uri)
         if not uri.startswith('beetslocal:'):
             raise ValueError('Invalid URI.')
-        path = uri.split(b':', 3)[3]
-        beets_id = uri.split(b':', 3)[2]
-        item_type = uri.split(b':', 3)[1]
-        logger.debug("extracted path = %s id = %s type = %s" % (
-            path.encode('ascii', 'ignore'), beets_id, item_type))
+        path = uri.split(':', 3)[3]
+        logger.debug("path for uri %s is %s",uri,path)
+        beets_id = uri.split(':', 3)[2]
+        item_type = uri.split(':', 3)[1]
+        logger.debug("extracted path = %s id = %s type = %s",path, beets_id, item_type)
         return {'path': path,
                 'beets_id': int(beets_id),
                 'item_type': item_type}

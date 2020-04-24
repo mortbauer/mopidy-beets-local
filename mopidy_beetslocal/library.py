@@ -10,7 +10,7 @@ from mopidy import backend
 from mopidy.exceptions import ExtensionError
 from mopidy.models import Album, Artist, Ref, SearchResult, Track
 
-from uritools import uricompose, uriencode, urisplit
+from uritools import uricompose, urisplit, uridecode
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,6 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
 
     def search(self, query=None, uris=None, exact=False):
         logger.debug(u'Search query: %s in uris: %s' % (query, uris))
-        # import pdb; pdb.set_trace()
         query = self._sanitize_query(query)
         logger.debug(u'Search sanitized query: %s ' % query)
         if exact:
@@ -97,6 +96,7 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
         )
 
     def browse(self, uri):
+        uri = uridecode(uri)
         logger.debug(u"Browse being called for %s" % uri)
         level = urisplit(uri).path
         query = self._sanitize_query(dict(urisplit(uri).getquerylist()))
@@ -134,38 +134,37 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
                     name=album.album))
         elif level == "album":
             for track in self._browse_track(query):
-                result.append(Ref.track(
-                    uri="beetslocal:track:%s:%s" % (
-                        track.id,
-                        uriencode(track.path, '/')),
-                    name=track.title))
+                uri="beetslocal:track:{}:{}".format(
+                    track.id,
+                    track.path.decode('utf-8')
+                )
+                result.append(Ref.track(uri=uri,name=track.title))
+                logger.debug('Appending %s',result[-1])
         else:
             logger.debug('Unknown URI: %s', uri)
         # logger.debug(result)
         return result
 
     def lookup(self, uri):
-        logger.debug(u'looking up uri = %s of type %s' % (
-            uri.encode('ascii', 'ignore'), type(uri).__name__))
+        logger.debug(u'looking up uri = %s of type %s',uri,type(uri))
         uri_dict = self.backend._extract_uri(uri)
         item_type = uri_dict['item_type']
         beets_id = uri_dict['beets_id']
-        logger.debug('item_type: "%s", beets_id: "%s"' % (item_type, beets_id))
+        logger.debug('item_type: "%s", beets_id: "%s"',item_type, beets_id)
         if item_type == 'track':
             try:
                 track = self._get_track(beets_id)
-                logger.debug(u'Beets track for id "%s": %s' %
-                             (beets_id, uri.encode('ascii', 'ignore')))
+                logger.debug('Beets track for id "%s": %s',beets_id,uri)
                 return [track]
             except Exception as error:
-                logger.debug(u'Failed to lookup "%s": %s' % (uri, error))
+                logger.debug('Failed to lookup "%s": %s',uri, error)
                 return []
         elif item_type == 'album':
             try:
                 tracks = self._get_album(beets_id)
                 return tracks
             except Exception as error:
-                logger.debug(u'Failed to lookup "%s": %s' % (uri, error))
+                logger.debug(u'Failed to lookup "%s": %s',uri, error)
                 return []
         else:
             logger.debug(u"Dont know what to do with item_type: %s" %
@@ -173,10 +172,9 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
             return []
 
     def get_distinct(self, field, query=None):
-        logger.warn(u'get_distinct called field: %s, Query: %s' % (field,
-                                                                   query))
+        logger.warn(u'get_distinct called field: %s, Query: %s',field,query)
         query = self._sanitize_query(query)
-        logger.debug(u'Search sanitized query: %s ' % query)
+        logger.debug(u'Search sanitized query: %s ',query)
         result = []
         if field == 'artist':
             result = self._browse_artist(query)
@@ -189,7 +187,9 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
 
     def _get_track(self, beets_id):
         track = self.lib.get_item(beets_id)
-        return self._convert_item(track)
+        res = self._convert_item(track)
+        logger.debug('Getting track %s: %s',beets_id,res)
+        return res
 
     def _get_album(self, beets_id):
         album = self.lib.get_album(beets_id)
@@ -199,7 +199,7 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
         return self.lib.items('album_id:\'%s\'' % query['album'][0])
 
     def _browse_album(self, query):
-        logger.debug(u'browse_album query: %s' % query)
+        logger.debug(u'browse_album query: %s', query)
         return self.lib.albums('mb_albumartistid:\'%s\' genre:\'%s\''
                                % (query['artist'][0], query['genre'][0]))
 
@@ -214,7 +214,7 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
                                                       'mb_albumid')
             statement += self._build_statement(query, 'date', 'year')
         statement += ' order by albumartist'
-        logger.debug('browse_artist: %s' % statement)
+        logger.debug('browse_artist: %s', statement)
         return self._query_beets_db(statement)
 
     def _browse_genre(self):
@@ -223,13 +223,13 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
 
     def _query_beets_db(self, statement):
         result = []
-        logger.debug(statement)
+        logger.debug('query %s',statement)
         with self.lib.transaction() as tx:
             try:
                 result = tx.query(statement)
             except:
                 # import pdb; pdb.set_trace()
-                logger.error('Statement failed: %s' % statement)
+                logger.error('Statement failed: %s', statement)
                 pass
         return result
 
@@ -241,7 +241,7 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
         # import pdb; pdb.set_trace()
         if not query:
             return query
-        for (key, values) in query.iteritems():
+        for (key, values) in query.items():
             if not values:
                 del query[key]
             if type(values) is not list:
@@ -519,9 +519,8 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
                 item['mb_albumartistid'])
 
         if 'path' in item:
-            track_kwargs['uri'] = "beetslocal:track:%s:%s" % (
-                item['id'],
-                uriencode(item['path'], '/'))
+            track_kwargs['uri'] = "beetslocal:track:{}:{}".format(
+                    item['id'],item['path'].decode('utf-8'))
 
         if 'length' in item:
             track_kwargs['length'] = int(item['length']) * 1000
