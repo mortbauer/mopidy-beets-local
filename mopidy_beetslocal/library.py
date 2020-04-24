@@ -23,24 +23,23 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
         super(BeetsLocalLibraryProvider, self).__init__(*args, **kwargs)
         try:
             import beets.library
-        except:
+        except Exception:
             logger.error('BeetsLocalBackend: could not import beets library')
         if not os.path.isfile(self.backend.beetslibrary):
             raise ExtensionError('Can not find %s'
                                  % (self.backend.beetslibrary))
         try:
             self.lib = beets.library.Library(self.backend.beetslibrary)
-        except sqlite3.OperationalError, e:
-            logger.error('BeetsLocalBackend: %s', e)
+        except sqlite3.OperationalError as e:
+            logger.error('BeetsLocalBackend: %s', err)
             raise ExtensionError('Mopidy-BeetsLocal can not open %s',
                                  self.backend.beetslibrary)
-        except sqlite3.DatabaseError, e:
-            logger.error('BeetsLocalBackend: %s', e)
+        except sqlite3.DatabaseError as err:
+            logger.error('BeetsLocalBackend: %s', err)
             raise ExtensionError('Moidy-BeetsLocal can not open %s',
                                  self.backend.beetslibrary)
-        except:
-            print "Unexpected error:", sys.exc_info()[0]
-            pass
+        except Exception:
+            logger.exception('Unexpected error')
 
     def _find_exact(self, query=None, uris=None):
         logger.debug("Find query: %s in uris: %s" % (query, uris))
