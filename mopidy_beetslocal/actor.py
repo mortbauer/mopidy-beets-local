@@ -6,6 +6,8 @@ import pykka
 
 from .library import BeetsLocalLibraryProvider
 
+from uritools import uricompose, urisplit, uridecode, uriencode
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,6 +42,6 @@ class BeetsLocalPlaybackProvider(backend.PlaybackProvider):
 
     def translate_uri(self, uri):
         logger.debug('translate_uri called %s', uri)
-        local_uri = 'file://%s' % self.backend._extract_uri(uri)['path']
+        local_uri = 'file://%s' % uricompose(path=self.backend._extract_uri(uri)['path'])
         logger.debug('local_uri: %s' % local_uri)
         return local_uri

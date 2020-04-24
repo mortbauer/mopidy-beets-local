@@ -419,17 +419,20 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
         Transforms a mopidy query into beets
         query syntax
         """
-        beets_query = ""
+        beets_query = []
         for key in query.keys():
             if key != 'any':
                 if key == 'track_name':
-                    beets_query += 'title'
+                    name = 'title'
                 else:
-                    beets_query += key
+                    name = key
+                beets_query.append('{}:{}'.format(name," ".join(query[key])))
+            else:
+                beets_query.append(" ".join(query[key]))
             # beets_query += "::(" + "|".join(query[key]) + ") "
-            beets_query += ":" + " ".join(query[key]) + " "
-            logger.info(beets_query)
-        return '\'%s\'' % beets_query.strip()
+        beets_query = ' '.join(beets_query)
+        logger.info('beets query %s',beets_query)
+        return beets_query
 
     def _build_beets_album_query(self, query):
         """
