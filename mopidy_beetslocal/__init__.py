@@ -26,5 +26,5 @@ class Extension(ext.Extension):
         return schema
 
     def setup(self, registry):
-        from actor import BeetsLocalBackend
+        from .actor import BeetsLocalBackend
         registry.add(u'backend', BeetsLocalBackend)
