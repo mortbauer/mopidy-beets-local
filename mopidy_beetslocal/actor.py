@@ -5,7 +5,7 @@ from mopidy import backend
 import pykka
 
 from .library import BeetsLocalLibraryProvider
-
+from . import SCHEME
 from uritools import uricompose, urisplit, uridecode, uriencode
 
 logger = logging.getLogger(__name__)
@@ -15,33 +15,21 @@ class BeetsLocalBackend(pykka.ThreadingActor, backend.Backend):
 
     def __init__(self, config, audio):
         super(BeetsLocalBackend, self).__init__()
-        self.beetslibrary = config['beetslocal']['beetslibrary']
-        self.use_original_release_date = config['beetslocal'][
+        self.beetslibrary = config[SCHEME]['beetslibrary']
+        self.directories = config[SCHEME]['directories']
+        self.use_original_release_date = config[SCHEME][
             'use_original_release_date']
         logger.debug("Got library %s" % (self.beetslibrary))
         self.playback = BeetsLocalPlaybackProvider(audio=audio, backend=self)
         self.library = BeetsLocalLibraryProvider(backend=self)
         self.playlists = None
-        self.uri_schemes = ['beetslocal']
-
-    def _extract_uri(self, uri):
-        logger.debug("convert uri = %s",uri)
-        if not uri.startswith('beetslocal:'):
-            raise ValueError('Invalid URI.')
-        path = uri.split(':', 3)[3]
-        logger.debug("path for uri %s is %s",uri,path)
-        beets_id = uri.split(':', 3)[2]
-        item_type = uri.split(':', 3)[1]
-        logger.debug("extracted path = %s id = %s type = %s",path, beets_id, item_type)
-        return {'path': path,
-                'beets_id': int(beets_id),
-                'item_type': item_type}
+        self.uri_schemes = [SCHEME]
 
 
 class BeetsLocalPlaybackProvider(backend.PlaybackProvider):
 
     def translate_uri(self, uri):
-        logger.debug('translate_uri called %s', uri)
-        local_uri = 'file://%s' % uricompose(path=self.backend._extract_uri(uri)['path'])
-        logger.debug('local_uri: %s' % local_uri)
+        path = uri.split(':',3)[3]
+        local_uri = f'file://{path}'
+        logger.debug('translate %s to %s',uri,local_uri)
         return local_uri
