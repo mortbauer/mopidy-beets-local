@@ -406,12 +406,13 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
             if len(parts) >= 3:
                 query_type = parts[1]
                 item_id = parts[2]
-                image_path = None
+                album = None
                 if query_type == 'album':
-                    image_path = self.lib.get_album(int(item_id)).artpath.decode('utf-8')
+                    album = self.lib.get_album(int(item_id))
                 elif query_type == 'track':
-                    image_path = self.lib.get_item(int(item_id)).get_album().artpath.decode('utf-8')
-                if image_path is not None:
+                    album = self.lib.get_item(int(item_id)).get_album()
+                if album is not None and album.artpath is not None:
+                    image_path = album.artpath.decode('utf-8')
                     images[uri] =  [
                             Image(
                                 uri=f'/{SCHEME}{image_path}'),
