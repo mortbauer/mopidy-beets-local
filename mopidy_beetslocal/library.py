@@ -190,16 +190,16 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
             )
         return results
 
-    def _browse_generic_album_container(self,iterator,noname):
+    def _browse_generic_album_container(self,iterator,key,default):
         results = []
         for row in iterator:
             results.append(Ref.directory(
                 uri=uricompose(
                     scheme=SCHEME,
                     path='directory',
-                    query=dict(type='album',year=str(row[0])),
+                    query={'type':'album',key:str(row[0])},
                     ),
-                name=str(row[0]) if row[0] else noname,
+                name=str(row[0]) if row[0] else default,
                 )
             )
         return results
@@ -221,11 +221,11 @@ class BeetsLocalLibraryProvider(backend.LibraryProvider):
         elif query_type == 'track':
             results = self._browse_album(querydict.get('album')[0])
         elif query_type == 'genre':
-            results = self._browse_generic_album_container(self.get_genres(),'No Genre')
+            results = self._browse_generic_album_container(self.get_genres(),key='genre',default='No Genre')
         elif query_type == 'artist':
-            results = self._browse_generic_album_container(self.get_artists(),'No Atist')
+            results = self._browse_generic_album_container(self.get_artists(),key='artist',default='No Atist')
         elif query_type == 'date':
-            results = self._browse_generic_album_container(self.get_release_years(),'No Year')
+            results = self._browse_generic_album_container(self.get_release_years(),key='year',default='No Year')
         logger.debug('browse directory %s got %s',dict(querydict),results)
         return results
 
